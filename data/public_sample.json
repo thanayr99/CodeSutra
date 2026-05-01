@@ -1,0 +1,22 @@
+[
+  {
+    "id": "sample-1",
+    "query": "53 grade ordinary Portland cement for precast concrete",
+    "expected_standards": ["IS 12269:1987"]
+  },
+  {
+    "id": "sample-2",
+    "query": "coarse and fine aggregates from natural sources for concrete",
+    "expected_standards": ["IS 383:1970"]
+  },
+  {
+    "id": "sample-3",
+    "query": "TMT rebar steel bars for concrete reinforcement",
+    "expected_standards": ["IS 1786:1985"]
+  },
+  {
+    "id": "sample-4",
+    "query": "fly ash based portland pozzolana cement",
+    "expected_standards": ["IS 1489 (Part 1):1991"]
+  }
+]

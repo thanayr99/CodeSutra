@@ -1,0 +1,46 @@
+[
+  {
+    "id": "sample-1",
+    "retrieved_standards": [
+      "IS 12269:1987",
+      "IS 8042:1989",
+      "IS 8112:1989",
+      "IS 269:1989",
+      "IS 455:1989"
+    ],
+    "latency_seconds": 0.109605
+  },
+  {
+    "id": "sample-2",
+    "retrieved_standards": [
+      "IS 383:1970",
+      "IS 2686:1977",
+      "IS 1542:1992",
+      "IS 9142:1979",
+      "IS 1195:2002"
+    ],
+    "latency_seconds": 0.111335
+  },
+  {
+    "id": "sample-3",
+    "retrieved_standards": [
+      "IS 1786:1985",
+      "IS 432 (Part II):1982",
+      "IS 432 (Part 1):1982",
+      "IS 1566:1982",
+      "IS 13620:1993"
+    ],
+    "latency_seconds": 0.10777
+  },
+  {
+    "id": "sample-4",
+    "retrieved_standards": [
+      "IS 1489 (Part 1):1991",
+      "IS 1489 (Part 2):1991",
+      "IS 12269:1987",
+      "IS 455:1989",
+      "IS 8112:1989"
+    ],
+    "latency_seconds": 0.121381
+  }
+]
