@@ -8,7 +8,7 @@
       "IS 269:1989",
       "IS 455:1989"
     ],
-    "latency_seconds": 0.109605
+    "latency_seconds": 0.109761
   },
   {
     "id": "sample-2",
@@ -19,7 +19,7 @@
       "IS 9142:1979",
       "IS 1195:2002"
     ],
-    "latency_seconds": 0.111335
+    "latency_seconds": 0.109159
   },
   {
     "id": "sample-3",
@@ -30,7 +30,7 @@
       "IS 1566:1982",
       "IS 13620:1993"
     ],
-    "latency_seconds": 0.10777
+    "latency_seconds": 0.130223
   },
   {
     "id": "sample-4",
@@ -41,6 +41,6 @@
       "IS 455:1989",
       "IS 8112:1989"
     ],
-    "latency_seconds": 0.121381
+    "latency_seconds": 0.104926
   }
 ]

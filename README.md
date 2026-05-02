@@ -1,36 +1,41 @@
 # BIS Standards Recommendation Engine
 
-Proof-of-concept RAG system for the hackathon theme: turning a building-material product description into top BIS standard recommendations from BIS SP 21.
+Intent-aware hybrid retrieval system for the BIS x Sigma Squad AI Hackathon. It turns building-material product descriptions into relevant BIS standard recommendations from the supplied BIS SP 21 PDF.
 
 ## What It Does
 
 - Extracts `SUMMARY OF IS ...` sections from `dataset/dataset.pdf`.
 - Builds a hybrid retrieval index over standard IDs, titles, scopes, and requirement summaries.
-- Combines TF-IDF lexical retrieval with semantic embeddings. It uses `sentence-transformers/all-MiniLM-L6-v2` by default and caches document embeddings in `data/semantic_embeddings.npz`; if the model is unavailable, it falls back to local LSA embeddings from scikit-learn.
-- Uses a lightweight category agent for cement, concrete, aggregates, steel, masonry, paint, lime, glass, and wood queries.
-- Returns the top 3-5 BIS standards with deterministic rationales for demos.
+- Uses TF-IDF plus local semantic LSA embeddings by default, so judge runs do not need network access.
+- Classifies category and intent before retrieval, for example `cement`, `steel`, `aggregate`, `concrete`, `material`, `product`, or `specification`.
+- Applies intent-aware reranking so material queries return foundational materials such as cement, concrete, aggregates, and reinforcement instead of only product standards.
 - Provides the mandatory judge entry point: `python inference.py --input hidden_private_dataset.json --output team_results.json`.
+- Serves a real-time frontend and backend from `app.py`.
 
-No external APIs are used. The submitted PDF is the sole knowledge source.
+No external APIs are used by default. The submitted PDF is the sole recommendation source.
 
 ## Repository Layout
 
 ```text
-.
-├── dataset/
-│   └── dataset.pdf
-├── src/
-│   ├── __init__.py
-│   └── bis_recommender.py
-├── data/
-│   ├── bis_index.json          # generated on first run
-│   └── public_sample.json
-├── app.py                      # no-dependency web demo
-├── inference.py                # mandatory judge entry point
-├── eval_script.py              # local metric checker
-├── presentation_outline.md
-├── requirements.txt
-└── README.md
+dataset/
+  dataset.pdf
+src/
+  __init__.py
+  bis_recommender.py
+data/
+  bis_index.json
+  public_sample.json
+  sample_results.json
+app.py
+inference.py
+eval_script.py
+presentation_outline.md
+requirements.txt
+requirements-embeddings.txt
+render.yaml
+Procfile
+runtime.txt
+README.md
 ```
 
 ## Setup
@@ -41,36 +46,18 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-The default semantic backend is local LSA so judge runs never depend on network access. To explicitly use SentenceTransformers/MiniLM:
+Optional SentenceTransformers backend:
 
 ```bash
+pip install -r requirements-embeddings.txt
 set BIS_SEMANTIC_BACKEND=sentence-transformers
 set BIS_ALLOW_MODEL_DOWNLOAD=1
-python inference.py --input data/public_sample.json --output data/sample_results.json
 ```
-
-Alternative embedding model:
-
-```bash
-set BIS_SEMANTIC_BACKEND=sentence-transformers
-set BIS_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
-python inference.py --input data/public_sample.json --output data/sample_results.json
-```
-
-The first sentence-transformers run may download the model. After that, document embeddings are cached locally for faster startup.
 
 ## Judge Command
 
 ```bash
 python inference.py --input hidden_private_dataset.json --output team_results.json
-```
-
-Input items should contain at least:
-
-```json
-[
-  { "id": "q1", "query": "53 grade ordinary Portland cement for precast concrete" }
-]
 ```
 
 Output format:
@@ -85,19 +72,28 @@ Output format:
 ]
 ```
 
-## Demo CLI
+## Local Evaluation
 
 ```bash
-python -m src.bis_recommender "fly ash based portland pozzolana cement" --top-k 5
+python inference.py --input data/public_sample.json --output data/sample_results.json
+python eval_script.py --gold data/public_sample.json --pred data/sample_results.json
 ```
 
-Classify and expand a query without retrieval:
+## CLI Demo
+
+Recommend standards:
+
+```bash
+python -m src.bis_recommender "materials used in precast structural elements" --top-k 5
+```
+
+Classify and expand a query:
 
 ```bash
 python -m src.bis_recommender "materials used in precast structural elements" --classify
 ```
 
-Output:
+Example classification:
 
 ```json
 {
@@ -107,40 +103,58 @@ Output:
 }
 ```
 
-The demo CLI includes title, score, page range, and a brief rationale. The judge output intentionally keeps only the strict fields required for automated evaluation.
-
 ## Web Demo
 
 ```bash
 python app.py
 ```
 
-Open `http://127.0.0.1:8000` and enter a product description. The API endpoint is also available at:
+Open:
 
 ```text
-http://127.0.0.1:8000/api/recommend?q=fly%20ash%20cement
+http://127.0.0.1:8000
 ```
 
-Query understanding endpoint:
+The UI shows:
+
+- query category
+- query intent
+- expanded query
+- ranked BIS standards
+- PDF page references
+- human-readable rationale
+
+API endpoints:
 
 ```text
-http://127.0.0.1:8000/api/classify?q=materials%20used%20in%20precast%20structural%20elements
+GET /api/recommend?q=fly%20ash%20cement
+GET /api/classify?q=materials%20used%20in%20precast%20structural%20elements
+GET /health
 ```
 
-## Local Evaluation
+## Hosting
 
-```bash
-python inference.py --input data/public_sample.json --output data/sample_results.json
-python eval_script.py --gold data/public_sample.json --pred data/sample_results.json
+The app is deployable as a single Python web service. `app.py` serves both the frontend and backend.
+
+Render setup:
+
+```text
+Build command: pip install -r requirements.txt
+Start command: python app.py
+Health check path: /health
 ```
+
+The repository includes `render.yaml`, `Procfile`, and `runtime.txt`. The server reads the hosting provider's `PORT` environment variable automatically.
 
 ## Retrieval Strategy
 
 1. PDF extraction with `pypdf`.
-2. Standard-level chunking: each `SUMMARY OF IS ...` block is one retrievable document.
-3. Lightweight category-agent step to infer the product domain before retrieval.
-4. Query expansion for common product terms such as `OPC`, `PPC`, `PSC`, `AAC`, `TMT`, and `rebar`.
-5. Hybrid retrieval: `0.6 * TF-IDF lexical similarity + 0.4 * semantic embedding similarity`.
-6. Category-aware reranking and noise suppression to keep cement, steel, aggregate, and masonry recommendations on-domain.
+2. Standard-level chunking at each `SUMMARY OF IS ...` section.
+3. Query understanding: category plus intent.
+4. Query expansion for domain abbreviations and material intent.
+5. Hybrid retrieval: `0.6 * TF-IDF similarity + 0.4 * semantic similarity`.
+6. Intent-aware filtering, material-family diversity, and domain reranking.
 
-This is intentionally offline and reproducible so judges can run it on standard hardware within the latency target.
+Demo line:
+
+> Our system understands not just keywords but intent. For material-based queries, it intelligently shifts retrieval towards foundational construction components like cement, aggregates, concrete, and reinforcement, ensuring domain-accurate BIS recommendations.
